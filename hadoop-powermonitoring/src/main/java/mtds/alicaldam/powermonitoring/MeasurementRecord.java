@@ -11,7 +11,10 @@ public class MeasurementRecord implements WritableComparable<MeasurementRecord> 
 	Integer householdId;
 	Integer plugId;
 	Integer measure;
-
+	public MeasurementRecord() {
+		// This is needed for hadoop to use reflection 
+		//http://stackoverflow.com/questions/11446635/no-such-method-exception-hadoop-init
+	}
 	public MeasurementRecord(int householdId2, int plugId2,
 			int measure2) {
 		super();
@@ -39,5 +42,10 @@ public class MeasurementRecord implements WritableComparable<MeasurementRecord> 
 	@Override
 	public int compareTo(MeasurementRecord o) {
 		return this.measure.compareTo(o.measure);
+	}
+	@Override
+	public String toString() {
+		return "MeasurementRecord [plugId=" + plugId + ", householdId="
+				+ householdId + ", measure=" + measure + "]";
 	}
 }

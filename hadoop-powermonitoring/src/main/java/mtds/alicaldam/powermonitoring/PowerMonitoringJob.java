@@ -3,8 +3,6 @@ package mtds.alicaldam.powermonitoring;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -20,9 +18,9 @@ import org.apache.hadoop.util.ToolRunner;
 public class PowerMonitoringJob extends Configured implements Tool {
 
 	public static final String INPUT_SEPARATOR = ",";
-	
+
 	public static final String FIRST_TIMESTAMP = "first_timestamp";
-	
+
 	public static final int MEASURE_ID_INDEX = 0;
 	public static final int TIMESTAMP_INDEX = 1;
 	public static final int PLUG_ID_INDEX = 2;
@@ -30,7 +28,7 @@ public class PowerMonitoringJob extends Configured implements Tool {
 	public static final int HOUSE_ID_INDEX = 4;
 	public static final int MEASURE_INDEX = 5;
 
-	public static final int MILLIS_IN_A_HOUR = 3600 * 1000;
+	public static final int SECONDS_IN_A_HOUR = 3600;
 
 	@Override
 	public int run(String[] args) throws Exception {
@@ -42,31 +40,41 @@ public class PowerMonitoringJob extends Configured implements Tool {
 			ToolRunner.printGenericCommandUsage(System.err);
 			return -1;
 		}
-		Job job = Job.getInstance(getConf(), "Mean temperature");
-		job.setJarByClass(getClass());
-		
 		Path inputPath = new Path(args[0]);
 		Path outputPath = new Path(args[1]);
+		Configuration config = new Configuration();
+		FileSystem fs = FileSystem.get(config);
+		InputStream in = null;
+		try {
+			in = fs.open(inputPath);
+			BufferedReader r = new BufferedReader(new InputStreamReader(in));
+			long first_timestamp =Long.parseLong( r.readLine().split(INPUT_SEPARATOR)[1]);
+			System.out.println("First timestamp: "+first_timestamp);
+			config.setLong(FIRST_TIMESTAMP, first_timestamp);
+		} catch (Exception e) {
+			
+			return -1;
+		}
 		
+		Job job = Job.getInstance(config, "Power Monitoring");
+		job.setJarByClass(getClass());
+
 		FileInputFormat.addInputPath(job, inputPath);
 		FileOutputFormat.setOutputPath(job, outputPath);
+
+		/*
+		 * Map Reduce configuration: the output classes for map and reduce are
+		 * different. it is needed to specify them for both the operation.
+		 */
+		// MAP configuration
 		job.setMapperClass(PowerMonitoringMap.class);
+		job.setMapOutputKeyClass(HouseIdHourKey.class);
+		job.setMapOutputValueClass(MeasurementRecord.class);
+		// REDUCE configuration
 		job.setReducerClass(PowerMonitoringReduce.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(DoubleWritable.class);
 
-		Configuration c = getConf();
-		FileSystem fs = FileSystem.get(URI.create(null), c);
-		InputStream in = null;
-		try{
-			in = fs.open(inputPath);
-			BufferedReader r = new BufferedReader(new InputStreamReader(in));
-			c.setLong(FIRST_TIMESTAMP, Long.parseLong(r.readLine().split(INPUT_SEPARATOR)[1]));
-		} catch (Exception e) {
-			job.killJob();
-			return 1;
-		}
-		
 		return job.waitForCompletion(true) ? 0 : 1;
 
 	}
