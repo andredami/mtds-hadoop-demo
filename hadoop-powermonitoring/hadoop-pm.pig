@@ -1,4 +1,4 @@
-datarecords = LOAD 'data' AS (mid:long,timestamp:long,plugid:int,householdid:int,houseid:int,measurement:int);
+datarecords = LOAD '/user/hadoop/data.cvs' USING AS (mid:long,timestamp:long,plugid:int,householdid:int,houseid:int,measurement:int);
 start_timestamp = min(datarecords.timestamp);
 parsed_datarecord = FOREACH datarecords GENERATE (timestamp-start_timestamp)/3600 AS hourindex:int, plugid, householdid, houseid, measurement;
 data_per_househour= GROUP parsed_datarecord BY houseid, hourindex;
