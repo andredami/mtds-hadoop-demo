@@ -13,7 +13,10 @@ outliers = FOREACH pre_outliers GENERATE house_median_flat::group::hourindex AS 
 outliers_only = FILTER outliers BY test > (double)0;
 pre_outliers_count = GROUP outliers_only BY (houseid, hourindex);
 outliers_count = FOREACH pre_outliers_count GENERATE group, COUNT(outliers_only) AS outliers_num:int;
-plugs_count = ???;
+data_per_plug = GROUP parsed_datarecord BY (houseid, hourindex, householdid, plugid);
+pre_pre_plugs_count = FOREACH data_per_plug GENERATE FLATTEN(group), MIN(parsed_datarecord.measurement) AS test;
+pre_plugs_count = GROUP pre_pre_plugs_count BY (group::houseid, group::hourindex);
+plugs_count = FOREACH pre_plugs_count GENERATE group, COUNT(pre_pre_plugs_count) AS plugs_count;
 perc_eval = JOIN outliers_count BY group, plugs_count BY group;
-perc_val = FOREACH perc_eval GENERATE outliers_count::group, ((double)outliers_count::outliers_num/(double)plugs_count::count)*(double)100 AS perc:double;
+perc_val = FOREACH perc_eval GENERATE outliers_count::group, ((outliers_count::outliers_num/plugs_count::plugs_count)*100) AS perc:double;
 DUMP perc_val;
