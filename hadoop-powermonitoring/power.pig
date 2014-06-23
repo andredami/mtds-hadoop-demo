@@ -2,7 +2,7 @@
 REGISTER hadoop-powermonitoring-0.0.1-SNAPSHOT.jar;
 DEFINE MEDIAN powermonitoring.udf.Median();
 --carico i dati
-datarecords = LOAD '/user/hduser/data.csv' USING PigStorage(',') AS (mid:long,timestamp:long,plugid:int,householdid:int,houseid:int,measurement:int);
+datarecords = LOAD '$input' USING PigStorage(',') AS (mid:long,timestamp:long,plugid:int,householdid:int,houseid:int,measurement:int);
 --setto il campo hourindex
 top_bag = GROUP datarecords ALL;
 start= FOREACH top_bag GENERATE MIN(datarecords.timestamp) AS timestamp;
